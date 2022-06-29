@@ -10,12 +10,14 @@ pub mod solana_anchor_voting_app {
     use super::*;
 
     // NOTE Any argument that is NOT an account can be passed after context
-    pub fn submit_vote(ctx: Context<SubmitVoteInstructionContext>, topic: String, selection: String) -> Result<()> {
+    // NOTE It's good practice to create a custom Instruction struct for each of our functions
+    // e.g. submit_vote() has SubmitVote struct, increment() has Increment struct,etc.
+    pub fn submit_vote(ctx: Context<SubmitVoteInstruction>, topic: String, selection: String) -> Result<()> {
     
         // 1. Extract all the accounts we need from ctx
         let vote: &mut Account<Vote> = &mut ctx.accounts.vote;
         // Access user account to save it on the vote account
-        let author: &Signer = &ctx.accounts.author;
+        let user: &Signer = &ctx.accounts.user;
         // Use Solana's Clock::get() for timestamp on vote
         let clock: Clock = Clock::get().unwrap();
 
@@ -27,18 +29,18 @@ pub mod solana_anchor_voting_app {
             return Err(ErrorCode::TopicTooLong.into())
         } 
 
-        if selection.chars().count() > MAX_CONTENT_CHARS {
+        if selection.chars().count() > MAX_SELECTION_CHARS {
             // Return an error
             // NOTE into() coverts our ErrorCode type into w/e is required by
             // the code which here is Err and more precisely ProgramError
-            return Err(ErrorCode::ContentTooLong.into())
+            return Err(ErrorCode::SelectionTooLong.into())
         }
 
         // 3. We now have all the data we need to fill the new vote account
-        user.author = *author.key;
-        user.timestamp = clock.unix_timestamp;
-        user.topic = topic;
-        user.selection = selection;
+        vote.user = *user.key;
+        vote.timestamp = clock.unix_timestamp;
+        vote.topic = topic;
+        vote.selection = selection;
 
         // NOTE At this point we have a working instruction that initializes
         // a new Vote account for us and hydrates/populates it with the right info
@@ -54,7 +56,7 @@ pub mod solana_anchor_voting_app {
 // NOTE Account Contraints (by Anchor) are like middleware that occur before
 // the instruction function e.g. submit_tweet() is being executed
 #[derive(Accounts)]
-pub struct SubmitVoteInstructionContext<'info> {
+pub struct SubmitVoteInstruction<'info> {
     // Ensure account of type Account is signer by using account constraints
     #[account(init, payer = user, space = Vote::LEN)]
     pub vote: Account<'info, Vote>, // account that instruction will create
@@ -101,4 +103,13 @@ impl Vote {
         + TIMESTAMP_LENGTH
         + STRING_LENGTH_PREFIX + MAX_TOPIC_LENGTH
         + STRING_LENGTH_PREFIX + MAX_SELECTION_LENGTH;
+}
+
+// === Custom Errors
+#[error_code]
+pub enum ErrorCode {
+    #[msg("The provided topic should be 50 characters long maximum.")]
+    TopicTooLong,
+    #[msg("The provided selection should be 50 characters long maximum.")]
+    SelectionTooLong,
 }
