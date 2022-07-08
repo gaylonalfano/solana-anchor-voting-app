@@ -84,58 +84,70 @@ describe("solana-anchor-voting-app", () => {
         program.programId
       );
 
-    // FIXME Following this example to call the methods:
+    // Following this example to call the methods:
     // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
     await program.methods
-      .submitVote("peanut butter poll", "crunchy")
+      .initialize()
       .accounts({
-        vote: vote.publicKey,
-        user: (program.provider as anchor.AnchorProvider).wallet.publicKey,
-      })
-      .signers([vote])
-      .rpc();
-  });
-    
-    await program.rpc.initialize(new anchor.BN(voteAccountBump), {
-      accounts: {
         user: provider.wallet.publicKey,
-        voteAccount: voteAccount,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      },
-    });
+        voteAccount: voteAccountPDA,
+        // Q: Which programId to pass? Is it my program's or the systemProgram's?
+        // NOTE I BELIEVE it should be the SystemProgram's based on this SO thread AND
+        // the fact that when I use my program's ID, the error shows it should be 111111...
+        // NOTE https://stackoverflow.com/questions/70675404/cross-program-invocation-with-unauthorized-signer-or-writable-account
+        // systemProgram: program.programId, // ERROR CPI
+        systemProgram: anchor.web3.SystemProgram.programId, // ERROR CPI
+      })
+      .rpc();
 
+    // OLD/ORIGINAL: await program.rpc.initialize(new anchor.BN(voteAccountBump), { accounts: {
+    //     user: provider.wallet.publicKey,
+    //     voteAccount: voteAccount,
+    //     systemProgram: anchor.web3.SystemProgram.programId,
+    //   },
+    // });
+
+    // 3. After the transaction returns, we can fetch the state of the vote account
     let currentVoteAccountState = await program.account.votingState.fetch(
-      voteAccount
+      voteAccountPDA
     );
-    assert.equal(0, currentVoteAccountState.crunchy.toNumber());
-    assert.equal(0, currentVoteAccountState.smooth.toNumber());
+    console.log("currentVoteAccountState:", currentVoteAccountState);
+    // OLD:
+    // assert.equal(0, currentVoteAccountState.crunchy.toNumber());
+    // assert.equal(0, currentVoteAccountState.smooth.toNumber());
+
+    // 4. Verify the vote account has set up correctly
+    // https://book.anchor-lang.com/anchor_references/javascript_anchor_types_reference.html
+    expect(currentVoteAccountState.crunchy).to.equal(0);
+    expect(currentVoteAccountState.smooth).to.equal(0);
+    // expect(currentVoteAccountState.bump).to.equal(voteAccountBump);
   });
 
-  it("Votes correctly for crunchy", async () => {
-    await program.rpc.voteCrunchy({
-      accounts: {
-        voteAccount: voteAccount,
-      },
-    });
+  // it("Votes correctly for crunchy", async () => {
+  //   await program.rpc.voteCrunchy({
+  //     accounts: {
+  //       voteAccount: voteAccount,
+  //     },
+  //   });
 
-    let currentVoteAccountState = await program.account.votingState.fetch(
-      voteAccount
-    );
-    assert.equal(1, currentVoteAccountState.crunchy.toNumber());
-    assert.equal(0, currentVoteAccountState.smooth.toNumber());
-  });
+  //   let currentVoteAccountState = await program.account.votingState.fetch(
+  //     voteAccount
+  //   );
+  //   assert.equal(1, currentVoteAccountState.crunchy.toNumber());
+  //   assert.equal(0, currentVoteAccountState.smooth.toNumber());
+  // });
 
-  it("Votes correctly for smooth", async () => {
-    await program.rpc.voteSmooth({
-      accounts: {
-        voteAccount: voteAccount,
-      },
-    });
+  // it("Votes correctly for smooth", async () => {
+  //   await program.rpc.voteSmooth({
+  //     accounts: {
+  //       voteAccount: voteAccount,
+  //     },
+  //   });
 
-    let currentVoteAccountState = await program.account.votingState.fetch(
-      voteAccount
-    );
-    assert.equal(1, currentVoteAccountState.crunchy.toNumber());
-    assert.equal(1, currentVoteAccountState.smooth.toNumber());
-  });
+  //   let currentVoteAccountState = await program.account.votingState.fetch(
+  //     voteAccount
+  //   );
+  //   assert.equal(1, currentVoteAccountState.crunchy.toNumber());
+  //   assert.equal(1, currentVoteAccountState.smooth.toNumber());
+  // });
 });

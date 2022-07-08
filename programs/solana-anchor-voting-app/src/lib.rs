@@ -61,18 +61,21 @@ pub struct Initialize<'info> {
     /// Account<'info, VotingState> tells us that it should be deserialized to the VotingState struct defined below at #[account]
     // Q: Do I need to use 'pub' on these? Anchor example uses them but
     // original code doesn't
-    #[account(mut)]
-    pub user: Signer<'info>,
+    // A: Yes, seemed to help with compilation
+    // Q: Do I need user to be mutable? It is the payer....
+    // A: Yes, if I remove this trait then it breaks
     #[account(init, seeds = [b"vote_account", user.key().as_ref()], payer = user, space = 8 + 8 + 8 + 1,  bump)]
     pub vote_account: Account<'info, VotingState>,
+    #[account(mut)]
+    pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct Vote<'info> {
-    pub user: Signer<'info>,
     #[account(mut, seeds = [b"vote_account", user.key().as_ref()], bump = vote_account.bump)]
     vote_account: Account<'info, VotingState>,
+    pub user: Signer<'info>,
 }
 
 /// Here we define what what the state of our `vote_account` looks like
