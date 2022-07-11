@@ -3,6 +3,9 @@ import { Program } from "@project-serum/anchor";
 import { PublicKey } from "@solana/web3.js";
 import { SolanaAnchorVotingApp } from "../target/types/solana_anchor_voting_app";
 import { expect } from "chai";
+import { BN } from "bn.js";
+
+// NOTE Here's another good example of a test: https://github.com/yourarj/anchor-pda-account-creation-issue/blob/main/tests/anchor-pda-account-creation-issue.ts
 
 // describe("solana-anchor-voting-app", () => {
 //   // Configure the client to use the local cluster.
@@ -58,6 +61,7 @@ describe("solana-anchor-voting-app", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
+  console.log("Provider Wallet:", provider.wallet.publicKey.toBase58());
 
   const program = anchor.workspace
     .SolanaAnchorVotingApp as Program<SolanaAnchorVotingApp>;
@@ -83,22 +87,38 @@ describe("solana-anchor-voting-app", () => {
         ],
         program.programId
       );
+    console.log(voteAccountPDA.toBase58());
+
+    console.log(
+      "PDA for program",
+      program.programId.toBase58(),
+      "is generated :",
+      voteAccountPDA.toBase58()
+    );
 
     // Following this example to call the methods:
     // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
-    await program.methods
+    const tx = await program.methods
       .initialize()
       .accounts({
-        user: provider.wallet.publicKey,
+        // Q: I believe the order of accounts need to be consistent
+        // Doesn't seem to make any difference so far...
+        // A: In lib.rs > Initialize struct, if I put user before vote_account
+        // it seems to work, even if order isn't consistent here in test.
+        // NOTE It may not be the order, but something up with resetting
+        // the test-validator before running the tests...
         voteAccount: voteAccountPDA,
+        user: provider.wallet.publicKey,
         // Q: Which programId to pass? Is it my program's or the systemProgram's?
         // NOTE I BELIEVE it should be the SystemProgram's based on this SO thread AND
         // the fact that when I use my program's ID, the error shows it should be 111111...
         // NOTE https://stackoverflow.com/questions/70675404/cross-program-invocation-with-unauthorized-signer-or-writable-account
+        // Q: Do I even need to pass systemProgram? The Anchor PDA tutorial doesn't...
         // systemProgram: program.programId, // ERROR CPI
-        systemProgram: anchor.web3.SystemProgram.programId, // ERROR CPI
+        // systemProgram: anchor.web3.SystemProgram.programId, // ERROR CPI
       })
       .rpc();
+    console.log("Your transaction signature: ", tx);
 
     // OLD/ORIGINAL: await program.rpc.initialize(new anchor.BN(voteAccountBump), { accounts: {
     //     user: provider.wallet.publicKey,
@@ -111,15 +131,17 @@ describe("solana-anchor-voting-app", () => {
     let currentVoteAccountState = await program.account.votingState.fetch(
       voteAccountPDA
     );
-    console.log("currentVoteAccountState:", currentVoteAccountState);
-    // OLD:
-    // assert.equal(0, currentVoteAccountState.crunchy.toNumber());
-    // assert.equal(0, currentVoteAccountState.smooth.toNumber());
+    console.log("currentVoteAccountState: ", currentVoteAccountState);
 
     // 4. Verify the vote account has set up correctly
     // https://book.anchor-lang.com/anchor_references/javascript_anchor_types_reference.html
-    expect(currentVoteAccountState.crunchy).to.equal(0);
-    expect(currentVoteAccountState.smooth).to.equal(0);
+    // OLD:
+    // assert.equal(0, currentVoteAccountState.crunchy.toNumber());
+    // assert.equal(0, currentVoteAccountState.smooth.toNumber());
+    // NEW:
+    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(0);
+    // expect(currentVoteAccountState.crunchy).to.equal(new anchor.BN(0));
+    expect(currentVoteAccountState.smooth.toNumber()).to.equal(0);
     // expect(currentVoteAccountState.bump).to.equal(voteAccountBump);
   });
 

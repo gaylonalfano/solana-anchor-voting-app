@@ -15,16 +15,17 @@ mod solana_anchor_voting_app {
     /// This a Rust trait that is used via #[derive(Default)]. More info on that here: https://doc.rust-lang.org/std/default/trait.Default.html
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         // ctx.accounts.vote_account.bump = vote_account_bump;
-        // FIXME Rather than passing vote_account_bump as arg to initialize(),
+        // NOTE Rather than passing vote_account_bump as arg to initialize(),
         // going to follow Anchor PDA example code to find it instead.
         // NOTE The reason I'm attempting this is bc original code init's the vote_account
         // by adding constraint bump = vote_account_bump, but this makes compiling fail
-        let vote_account = &mut ctx.accounts.vote_account;
-        vote_account.crunchy = 0;
-        vote_account.smooth = 0;
-        // FIXME ERROR! For some reason ctx.bumps not available...
+        // Q: Do I need to set defaults to 0 after using Default trait?
+        // let vote_account = &mut ctx.accounts.vote_account;
+        // vote_account.crunchy = 0;
+        // vote_account.smooth = 0;
+        // Q: ERROR! For some reason ctx.bumps not available...
         // A: Needed to rebuild and redeploy and then ctx had .bumps method!
-        vote_account.bump = *ctx.bumps.get("vote_account").unwrap();
+        ctx.accounts.vote_account.bump = *ctx.bumps.get("vote_account").unwrap();
         Ok(())
     }
 
@@ -64,16 +65,20 @@ pub struct Initialize<'info> {
     // A: Yes, seemed to help with compilation
     // Q: Do I need user to be mutable? It is the payer....
     // A: Yes, if I remove this trait then it breaks
-    #[account(init, seeds = [b"vote_account", user.key().as_ref()], payer = user, space = 8 + 8 + 8 + 1,  bump)]
+    #[account(init, seeds = [b"vote-account", user.key().as_ref()], payer = user, space = 200, bump)]
     pub vote_account: Account<'info, VotingState>,
     #[account(mut)]
     pub user: Signer<'info>,
+    // NOTE When creating an account with init, the payer needs to sign the tx
+    // NOTE However, if we're dealing with PDAs then it could be different...
+    // At the very least, PDAs can't technically sign since they are not Keypairs
+    // Only via CPI can PDAs do some pseudo signing (read Anchor docs on this)
     pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct Vote<'info> {
-    #[account(mut, seeds = [b"vote_account", user.key().as_ref()], bump = vote_account.bump)]
+    #[account(mut, seeds = [b"vote-account", user.key().as_ref()], bump = vote_account.bump)]
     vote_account: Account<'info, VotingState>,
     pub user: Signer<'info>,
 }
