@@ -114,6 +114,7 @@ describe("solana-anchor-voting-app", () => {
         // the fact that when I use my program's ID, the error shows it should be 111111...
         // NOTE https://stackoverflow.com/questions/70675404/cross-program-invocation-with-unauthorized-signer-or-writable-account
         // Q: Do I even need to pass systemProgram? The Anchor PDA tutorial doesn't...
+        // A: I didn't need it when just running 'anchor test' (w/o test-validator)
         // systemProgram: program.programId, // ERROR CPI
         // systemProgram: anchor.web3.SystemProgram.programId, // ERROR CPI
       })
