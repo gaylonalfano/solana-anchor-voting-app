@@ -79,7 +79,7 @@ pub struct Initialize<'info> {
 #[derive(Accounts)]
 pub struct Vote<'info> {
     #[account(mut, seeds = [b"vote-account", user.key().as_ref()], bump = vote_account.bump)]
-    vote_account: Account<'info, VotingState>,
+    pub vote_account: Account<'info, VotingState>,
     pub user: Signer<'info>,
 }
 

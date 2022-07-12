@@ -87,7 +87,6 @@ describe("solana-anchor-voting-app", () => {
         ],
         program.programId
       );
-    console.log(voteAccountPDA.toBase58());
 
     console.log(
       "PDA for program",
@@ -112,6 +111,8 @@ describe("solana-anchor-voting-app", () => {
         // Q: Which programId to pass? Is it my program's or the systemProgram's?
         // NOTE I BELIEVE it should be the SystemProgram's based on this SO thread AND
         // the fact that when I use my program's ID, the error shows it should be 111111...
+        // A: I don't think I need to provide the SystemProgramID,
+        // since it's a PDA, AND since it doesn't seem needed at all (see below)
         // NOTE https://stackoverflow.com/questions/70675404/cross-program-invocation-with-unauthorized-signer-or-writable-account
         // Q: Do I even need to pass systemProgram? The Anchor PDA tutorial doesn't...
         // A: I didn't need it when just running 'anchor test' (w/o test-validator)
@@ -132,7 +133,7 @@ describe("solana-anchor-voting-app", () => {
     let currentVoteAccountState = await program.account.votingState.fetch(
       voteAccountPDA
     );
-    console.log("currentVoteAccountState: ", currentVoteAccountState);
+    // console.log("currentVoteAccountState: ", currentVoteAccountState);
 
     // 4. Verify the vote account has set up correctly
     // https://book.anchor-lang.com/anchor_references/javascript_anchor_types_reference.html
@@ -146,31 +147,80 @@ describe("solana-anchor-voting-app", () => {
     // expect(currentVoteAccountState.bump).to.equal(voteAccountBump);
   });
 
-  // it("Votes correctly for crunchy", async () => {
-  //   await program.rpc.voteCrunchy({
-  //     accounts: {
-  //       voteAccount: voteAccount,
-  //     },
-  //   });
+  it("Votes correctly for crunchy", async () => {
+    const [voteAccountPDA, voteAccountBump] =
+      await PublicKey.findProgramAddress(
+        [
+          anchor.utils.bytes.utf8.encode("vote-account"),
+          provider.wallet.publicKey.toBuffer(),
+        ],
+        program.programId
+      );
 
-  //   let currentVoteAccountState = await program.account.votingState.fetch(
-  //     voteAccount
-  //   );
-  //   assert.equal(1, currentVoteAccountState.crunchy.toNumber());
-  //   assert.equal(0, currentVoteAccountState.smooth.toNumber());
-  // });
+    console.log(
+      "PDA for program",
+      program.programId.toBase58(),
+      "is generated :",
+      voteAccountPDA.toBase58()
+    );
+
+    // Following this example to call the methods:
+    // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
+    const tx = await program.methods
+      .voteCrunchy()
+      .accounts({
+        voteAccount: voteAccountPDA,
+        user: provider.wallet.publicKey,
+      })
+      .rpc();
+    console.log("Your transaction signature: ", tx);
+
+    // 3. After the transaction returns, we can fetch the state of the vote account
+    let currentVoteAccountState = await program.account.votingState.fetch(
+      voteAccountPDA
+    );
+    // console.log("currentVoteAccountState: ", currentVoteAccountState);
+
+    // 4. Verify the crunchy vote incremented
+    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
+    // expect(currentVoteAccountState.smooth.toNumber()).to.equal(0);
+  });
 
   // it("Votes correctly for smooth", async () => {
-  //   await program.rpc.voteSmooth({
-  //     accounts: {
-  //       voteAccount: voteAccount,
-  //     },
-  //   });
-
-  //   let currentVoteAccountState = await program.account.votingState.fetch(
-  //     voteAccount
+  //   const [voteAccountPDA, _] = await PublicKey.findProgramAddress(
+  //     [
+  //       anchor.utils.bytes.utf8.encode("vote-account"),
+  //       provider.wallet.publicKey.toBuffer(),
+  //     ],
+  //     program.programId
   //   );
-  //   assert.equal(1, currentVoteAccountState.crunchy.toNumber());
-  //   assert.equal(1, currentVoteAccountState.smooth.toNumber());
+  //   console.log(voteAccountPDA.toBase58());
+
+  //   console.log(
+  //     "PDA for program",
+  //     program.programId.toBase58(),
+  //     "is generated :",
+  //     voteAccountPDA.toBase58()
+  //   );
+
+  //   // Following this example to call the methods:
+  //   // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
+  //   const tx = await program.methods
+  //     .voteSmooth()
+  //     .accounts({
+  //       voteAccount: voteAccountPDA,
+  //     })
+  //     .rpc();
+  //   console.log("Your transaction signature: ", tx);
+
+  //   // 3. After the transaction returns, we can fetch the state of the vote account
+  //   let currentVoteAccountState = await program.account.votingState.fetch(
+  //     voteAccountPDA
+  //   );
+  //   console.log("currentVoteAccountState: ", currentVoteAccountState);
+
+  //   // 4. Verify the smooth vote incremented
+  //   expect(currentVoteAccountState.smooth.toNumber()).to.equal(1);
+  //   expect(currentVoteAccountState.crunchy.toNumber()).to.equal(0);
   // });
 });
