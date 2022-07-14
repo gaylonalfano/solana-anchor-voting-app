@@ -117,7 +117,7 @@ describe("solana-anchor-voting-app", () => {
         // Q: Do I even need to pass systemProgram? The Anchor PDA tutorial doesn't...
         // A: I didn't need it when just running 'anchor test' (w/o test-validator)
         // systemProgram: program.programId, // ERROR CPI
-        // systemProgram: anchor.web3.SystemProgram.programId, // ERROR CPI
+        systemProgram: anchor.web3.SystemProgram.programId, // ERROR CPI
       })
       .rpc();
     console.log("Your transaction signature: ", tx);
@@ -164,22 +164,47 @@ describe("solana-anchor-voting-app", () => {
       voteAccountPDA.toBase58()
     );
 
+    // const initializeTx = await program.methods
+    //   .initialize()
+    //   .accounts({
+    //     // Q: I believe the order of accounts need to be consistent
+    //     // Doesn't seem to make any difference so far...
+    //     // A: In lib.rs > Initialize struct, if I put user before vote_account
+    //     // it seems to work, even if order isn't consistent here in test.
+    //     // NOTE It may not be the order, but something up with resetting
+    //     // the test-validator before running the tests...
+    //     voteAccount: voteAccountPDA,
+    //     user: provider.wallet.publicKey,
+    //     // Q: Which programId to pass? Is it my program's or the systemProgram's?
+    //     // NOTE I BELIEVE it should be the SystemProgram's based on this SO thread AND
+    //     // the fact that when I use my program's ID, the error shows it should be 111111...
+    //     // A: I don't think I need to provide the SystemProgramID,
+    //     // since it's a PDA, AND since it doesn't seem needed at all (see below)
+    //     // NOTE https://stackoverflow.com/questions/70675404/cross-program-invocation-with-unauthorized-signer-or-writable-account
+    //     // Q: Do I even need to pass systemProgram? The Anchor PDA tutorial doesn't...
+    //     // NOTE I didn't need it when just running 'anchor test' (w/o test-validator)
+    //     // systemProgram: program.programId, // ERROR CPI
+    //     systemProgram: anchor.web3.SystemProgram.programId, // ERROR CPI
+    //   })
+    //   .rpc();
+    // console.log("initializeTx signature: ", initializeTx);
+
     // Following this example to call the methods:
     // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
-    const tx = await program.methods
+    const voteCrunchyTx = await program.methods
       .voteCrunchy()
       .accounts({
         voteAccount: voteAccountPDA,
         user: provider.wallet.publicKey,
       })
       .rpc();
-    console.log("Your transaction signature: ", tx);
+    console.log("voteCrunchyTx signature: ", voteCrunchyTx);
 
     // 3. After the transaction returns, we can fetch the state of the vote account
     let currentVoteAccountState = await program.account.votingState.fetch(
       voteAccountPDA
     );
-    // console.log("currentVoteAccountState: ", currentVoteAccountState);
+    console.log("currentVoteAccountState: ", currentVoteAccountState);
 
     // 4. Verify the crunchy vote incremented
     expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
