@@ -63,11 +63,11 @@ pub struct Initialize<'info> {
     // Q: Do I need to use 'pub' on these? Anchor example uses them but
     // original code doesn't
     // A: Yes, seemed to help with compilation
-    // Q: Do I need user to be mutable? It is the payer....
-    // A: Yes, if I remove this trait then it breaks
     // #[account(init, seeds = [b"vote-account"], payer = user, space = 200, bump)]
     #[account(init, seeds = [b"vote-account", user.key().as_ref()], payer = user, space = 25, bump)]
     pub vote_account: Account<'info, VotingState>,
+    // Q: Do I need user to be mutable? It is the payer....
+    // A: Yes, if I remove this trait then it breaks
     #[account(mut)]
     pub user: Signer<'info>,
     // NOTE When creating an account with init, the payer needs to sign the tx

@@ -211,41 +211,43 @@ describe("solana-anchor-voting-app", () => {
     // expect(currentVoteAccountState.smooth.toNumber()).to.equal(0);
   });
 
-  // it("Votes correctly for smooth", async () => {
-  //   const [voteAccountPDA, _] = await PublicKey.findProgramAddress(
-  //     [
-  //       anchor.utils.bytes.utf8.encode("vote-account"),
-  //       provider.wallet.publicKey.toBuffer(),
-  //     ],
-  //     program.programId
-  //   );
-  //   console.log(voteAccountPDA.toBase58());
+  it("Votes correctly for smooth", async () => {
+    const [voteAccountPDA, _] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode("vote-account"),
+        provider.wallet.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    console.log(voteAccountPDA.toBase58());
 
-  //   console.log(
-  //     "PDA for program",
-  //     program.programId.toBase58(),
-  //     "is generated :",
-  //     voteAccountPDA.toBase58()
-  //   );
+    console.log(
+      "PDA for program",
+      program.programId.toBase58(),
+      "is generated :",
+      voteAccountPDA.toBase58()
+    );
 
-  //   // Following this example to call the methods:
-  //   // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
-  //   const tx = await program.methods
-  //     .voteSmooth()
-  //     .accounts({
-  //       voteAccount: voteAccountPDA,
-  //     })
-  //     .rpc();
-  //   console.log("Your transaction signature: ", tx);
+    // Following this example to call the methods:
+    // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
+    const tx = await program.methods
+      .voteSmooth()
+      .accounts({
+        voteAccount: voteAccountPDA,
+      })
+      .rpc();
+    console.log("Your transaction signature: ", tx);
 
-  //   // 3. After the transaction returns, we can fetch the state of the vote account
-  //   let currentVoteAccountState = await program.account.votingState.fetch(
-  //     voteAccountPDA
-  //   );
-  //   console.log("currentVoteAccountState: ", currentVoteAccountState);
+    // 3. After the transaction returns, we can fetch the state of the vote account
+    let currentVoteAccountState = await program.account.votingState.fetch(
+      voteAccountPDA
+    );
+    console.log("currentVoteAccountState: ", currentVoteAccountState);
 
-  //   // 4. Verify the smooth vote incremented
-  //   expect(currentVoteAccountState.smooth.toNumber()).to.equal(1);
-  //   expect(currentVoteAccountState.crunchy.toNumber()).to.equal(0);
-  // });
+    // 4. Verify the smooth vote incremented
+    expect(currentVoteAccountState.smooth.toNumber()).to.equal(1);
+    // NOTE Because we're using the same PDA to track the votes over time
+    // then the previous voteCrunchy() test vote will increment/persist!
+    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
+  });
 });
