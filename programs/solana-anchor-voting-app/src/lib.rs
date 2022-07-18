@@ -25,6 +25,7 @@ mod solana_anchor_voting_app {
         // vote_account.smooth = 0;
         // Q: ERROR! For some reason ctx.bumps not available...
         // A: Needed to rebuild and redeploy and then ctx had .bumps method!
+        // Q: Why does get("vote_account") work but NOT "vote-account"?
         ctx.accounts.vote_account.bump = *ctx.bumps.get("vote_account").unwrap();
         Ok(())
     }
