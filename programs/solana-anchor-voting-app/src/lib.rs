@@ -9,11 +9,11 @@ declare_id!("7vScxaW7QhPJ4szzcZ7tafjwVya7b5VFKWvANgqeU5EJ");
 mod solana_anchor_voting_app {
     use super::*;
 
-    /// The first parameter for every RPC handler is the Context struct. We define Initialize and Vote below at #[derive(Accounts)]
+    /// The first parameter for every RPC handler is the Context struct. We define SetupPoll and Vote below at #[derive(Accounts)]
     /// When `initalize` is called, we'll store the `vote_account_bump` that was used to derive our PDA so that others can easily derive it on their clients
     /// We no longer have to manually set both `crunchy` and `smooth` to 0 because we opted to use the `default` trait on our VotingState struct at the bottom of this file
     /// This a Rust trait that is used via #[derive(Default)]. More info on that here: https://doc.rust-lang.org/std/default/trait.Default.html
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    pub fn setup_poll(ctx: Context<SetupPoll>) -> Result<()> {
         // ctx.accounts.vote_account.bump = vote_account_bump;
         // NOTE Rather than passing vote_account_bump as arg to initialize(),
         // going to follow Anchor PDA example code to find it instead.
@@ -25,28 +25,28 @@ mod solana_anchor_voting_app {
         // vote_account.smooth = 0;
         // Q: ERROR! For some reason ctx.bumps not available...
         // A: Needed to rebuild and redeploy and then ctx had .bumps method!
-        ctx.accounts.vote_account.bump = *ctx.bumps.get("vote_account").unwrap();
+        ctx.accounts.poll.bump = *ctx.bumps.get("poll_account").unwrap();
         Ok(())
     }
 
     /// All our account validation logic is handled below at the #[account(...)] macros, letting us just focus our business logic
-    pub fn vote_crunchy(ctx: Context<Vote>) -> Result<()> {
-        ctx.accounts.vote_account.crunchy += 1;
+    pub fn vote_option1(ctx: Context<Vote>) -> Result<()> {
+        ctx.accounts.poll.option1 += 1;
         Ok(())
     }
 
-    pub fn vote_smooth(ctx: Context<Vote>) -> Result<()> {
-        ctx.accounts.vote_account.smooth += 1;
+    pub fn vote_option2(ctx: Context<Vote>) -> Result<()> {
+        ctx.accounts.poll.option2 += 1;
         Ok(())
     }
 }
 
 
 /// The #[derive(Accounts)] macro specifies all the accounts that are required for a given instruction
-/// Here, we define two structs: Initialize and Vote
+/// Here, we define two structs: SetupPoll and Vote
 // #[instruction(vote_account_bump: u8)]
 #[derive(Accounts)]
-pub struct Initialize<'info> {
+pub struct SetupPoll<'info> {
 
     /// The #[account(...)] macro enforces that our `vote_account` owned by the currently executing program.
     /// 
@@ -63,9 +63,10 @@ pub struct Initialize<'info> {
     // Q: Do I need to use 'pub' on these? Anchor example uses them but
     // original code doesn't
     // A: Yes, seemed to help with compilation
+    // NOTE Handy function to compute space: mem::size_of<Game>() + 9
     // #[account(init, seeds = [b"vote-account"], payer = user, space = 200, bump)]
-    #[account(init, seeds = [b"vote-account", user.key().as_ref()], payer = user, space = 25, bump)]
-    pub vote_account: Account<'info, VotingState>,
+    #[account(init, seeds = [b"poll_account", user.key().as_ref()], payer = user, space = 25, bump)]
+    pub poll: Account<'info, Poll>,
     // Q: Do I need user to be mutable? It is the payer....
     // A: Yes, if I remove this trait then it breaks
     #[account(mut)]
@@ -80,8 +81,8 @@ pub struct Initialize<'info> {
 #[derive(Accounts)]
 pub struct Vote<'info> {
     // #[account(mut, seeds = [b"vote-account"], bump = vote_account.bump)]
-    #[account(mut, seeds = [b"vote-account", user.key().as_ref()], bump = vote_account.bump)]
-    pub vote_account: Account<'info, VotingState>,
+    #[account(mut, seeds = [b"poll_account", user.key().as_ref()], bump = poll.bump)]
+    pub poll: Account<'info, Poll>,
     pub user: Signer<'info>,
 }
 
@@ -97,12 +98,11 @@ pub struct Vote<'info> {
 // account types that are PDAs: https://book.anchor-lang.com/anchor_in_depth/PDAs.html?highlight=pda#building-hashmaps-with-pdas
 #[account]
 #[derive(Default)]
-pub struct VotingState {
-    crunchy: u64, // 8 bytes
-    smooth: u64, // 8 bytes
+pub struct Poll {
+    option1: u64, // 8 bytes
+    option2: u64, // 8 bytes
     bump: u8, // 1 byte
 }
-
 
 
 
@@ -160,7 +160,7 @@ pub struct VotingState {
 
 
 // // 4. Define the context of Vote instruction for Context<T>
-// // NOTE By default ctx: Context<Initialize>. We're changing it to SubmitVoteInstruction struct
+// // NOTE By default ctx: Context<SetupPoll>. We're changing it to SubmitVoteInstruction struct
 // // NOTE Account<'info, Vote> is from Anchor, which wraps AccountInfo
 // // and parses the AccountInfo.data (u8[]) according to Vote struct
 // // NOTE Account Contraints (by Anchor) are like middleware that occur before

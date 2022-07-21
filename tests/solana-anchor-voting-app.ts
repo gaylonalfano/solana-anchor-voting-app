@@ -76,13 +76,13 @@ describe("solana-anchor-voting-app", () => {
   //     );
   // });
 
-  it("Initializes with 0 votes for crunchy and smooth", async () => {
+  it("Initializes with 0 votes for option1 and option2", async () => {
     // NOTE From Anchor PDA example: https://book.anchor-lang.com/anchor_in_depth/PDAs.html#how-to-build-pda-hashmaps-in-anchor
     // NOTE They find the PDA address INSIDE the it() test!
-    const [voteAccountPDA, voteAccountBump] =
+    const [pollAccountPDA, pollAccountBump] =
       await PublicKey.findProgramAddress(
         [
-          anchor.utils.bytes.utf8.encode("vote-account"),
+          anchor.utils.bytes.utf8.encode("poll_account"),
           provider.wallet.publicKey.toBuffer(),
         ],
         program.programId
@@ -92,13 +92,13 @@ describe("solana-anchor-voting-app", () => {
       "PDA for program",
       program.programId.toBase58(),
       "is generated :",
-      voteAccountPDA.toBase58()
+      pollAccountPDA.toBase58()
     );
 
     // Following this example to call the methods:
     // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
     const tx = await program.methods
-      .initialize()
+      .setupPoll()
       .accounts({
         // Q: I believe the order of accounts need to be consistent
         // Doesn't seem to make any difference so far...
@@ -106,7 +106,7 @@ describe("solana-anchor-voting-app", () => {
         // it seems to work, even if order isn't consistent here in test.
         // NOTE It may not be the order, but something up with resetting
         // the test-validator before running the tests...
-        voteAccount: voteAccountPDA,
+        poll: pollAccountPDA,
         user: provider.wallet.publicKey,
         // Q: Which programId to pass? Is it my program's or the systemProgram's?
         // NOTE I BELIEVE it should be the SystemProgram's based on this SO thread AND
@@ -117,7 +117,7 @@ describe("solana-anchor-voting-app", () => {
         // Q: Do I even need to pass systemProgram? The Anchor PDA tutorial doesn't...
         // A: I didn't need it when just running 'anchor test' (w/o test-validator)
         // systemProgram: program.programId, // ERROR CPI
-        systemProgram: anchor.web3.SystemProgram.programId, // ERROR CPI
+        systemProgram: anchor.web3.SystemProgram.programId,
       })
       .rpc();
     console.log("Your transaction signature: ", tx);
@@ -130,8 +130,8 @@ describe("solana-anchor-voting-app", () => {
     // });
 
     // 3. After the transaction returns, we can fetch the state of the vote account
-    let currentVoteAccountState = await program.account.votingState.fetch(
-      voteAccountPDA
+    let currentPollAccountState = await program.account.poll.fetch(
+      pollAccountPDA
     );
     // console.log("currentVoteAccountState: ", currentVoteAccountState);
 
@@ -141,113 +141,113 @@ describe("solana-anchor-voting-app", () => {
     // assert.equal(0, currentVoteAccountState.crunchy.toNumber());
     // assert.equal(0, currentVoteAccountState.smooth.toNumber());
     // NEW:
-    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(0);
+    expect(currentPollAccountState.option1.toNumber()).to.equal(0);
     // expect(currentVoteAccountState.crunchy).to.equal(new anchor.BN(0));
-    expect(currentVoteAccountState.smooth.toNumber()).to.equal(0);
+    expect(currentPollAccountState.option2.toNumber()).to.equal(0);
     // expect(currentVoteAccountState.bump).to.equal(voteAccountBump);
   });
 
-  it("Votes correctly for crunchy", async () => {
-    const [voteAccountPDA, voteAccountBump] =
-      await PublicKey.findProgramAddress(
-        [
-          anchor.utils.bytes.utf8.encode("vote-account"),
-          provider.wallet.publicKey.toBuffer(),
-        ],
-        program.programId
-      );
+  // it("Votes correctly for crunchy", async () => {
+  //   const [voteAccountPDA, voteAccountBump] =
+  //     await PublicKey.findProgramAddress(
+  //       [
+  //         anchor.utils.bytes.utf8.encode("vote-account"),
+  //         provider.wallet.publicKey.toBuffer(),
+  //       ],
+  //       program.programId
+  //     );
 
-    console.log(
-      "PDA for program",
-      program.programId.toBase58(),
-      "is generated :",
-      voteAccountPDA.toBase58()
-    );
+  //   console.log(
+  //     "PDA for program",
+  //     program.programId.toBase58(),
+  //     "is generated :",
+  //     voteAccountPDA.toBase58()
+  //   );
 
-    // const initializeTx = await program.methods
-    //   .initialize()
-    //   .accounts({
-    //     // Q: I believe the order of accounts need to be consistent
-    //     // Doesn't seem to make any difference so far...
-    //     // A: In lib.rs > Initialize struct, if I put user before vote_account
-    //     // it seems to work, even if order isn't consistent here in test.
-    //     // NOTE It may not be the order, but something up with resetting
-    //     // the test-validator before running the tests...
-    //     voteAccount: voteAccountPDA,
-    //     user: provider.wallet.publicKey,
-    //     // Q: Which programId to pass? Is it my program's or the systemProgram's?
-    //     // NOTE I BELIEVE it should be the SystemProgram's based on this SO thread AND
-    //     // the fact that when I use my program's ID, the error shows it should be 111111...
-    //     // A: I don't think I need to provide the SystemProgramID,
-    //     // since it's a PDA, AND since it doesn't seem needed at all (see below)
-    //     // NOTE https://stackoverflow.com/questions/70675404/cross-program-invocation-with-unauthorized-signer-or-writable-account
-    //     // Q: Do I even need to pass systemProgram? The Anchor PDA tutorial doesn't...
-    //     // NOTE I didn't need it when just running 'anchor test' (w/o test-validator)
-    //     // systemProgram: program.programId, // ERROR CPI
-    //     systemProgram: anchor.web3.SystemProgram.programId, // ERROR CPI
-    //   })
-    //   .rpc();
-    // console.log("initializeTx signature: ", initializeTx);
+  //   // const initializeTx = await program.methods
+  //   //   .initialize()
+  //   //   .accounts({
+  //   //     // Q: I believe the order of accounts need to be consistent
+  //   //     // Doesn't seem to make any difference so far...
+  //   //     // A: In lib.rs > Initialize struct, if I put user before vote_account
+  //   //     // it seems to work, even if order isn't consistent here in test.
+  //   //     // NOTE It may not be the order, but something up with resetting
+  //   //     // the test-validator before running the tests...
+  //   //     voteAccount: voteAccountPDA,
+  //   //     user: provider.wallet.publicKey,
+  //   //     // Q: Which programId to pass? Is it my program's or the systemProgram's?
+  //   //     // NOTE I BELIEVE it should be the SystemProgram's based on this SO thread AND
+  //   //     // the fact that when I use my program's ID, the error shows it should be 111111...
+  //   //     // A: I don't think I need to provide the SystemProgramID,
+  //   //     // since it's a PDA, AND since it doesn't seem needed at all (see below)
+  //   //     // NOTE https://stackoverflow.com/questions/70675404/cross-program-invocation-with-unauthorized-signer-or-writable-account
+  //   //     // Q: Do I even need to pass systemProgram? The Anchor PDA tutorial doesn't...
+  //   //     // NOTE I didn't need it when just running 'anchor test' (w/o test-validator)
+  //   //     // systemProgram: program.programId, // ERROR CPI
+  //   //     systemProgram: anchor.web3.SystemProgram.programId, // ERROR CPI
+  //   //   })
+  //   //   .rpc();
+  //   // console.log("initializeTx signature: ", initializeTx);
 
-    // Following this example to call the methods:
-    // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
-    const voteCrunchyTx = await program.methods
-      .voteCrunchy()
-      .accounts({
-        voteAccount: voteAccountPDA,
-        user: provider.wallet.publicKey,
-      })
-      .rpc();
-    console.log("voteCrunchyTx signature: ", voteCrunchyTx);
+  //   // Following this example to call the methods:
+  //   // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
+  //   const voteCrunchyTx = await program.methods
+  //     .voteCrunchy()
+  //     .accounts({
+  //       voteAccount: voteAccountPDA,
+  //       user: provider.wallet.publicKey,
+  //     })
+  //     .rpc();
+  //   console.log("voteCrunchyTx signature: ", voteCrunchyTx);
 
-    // 3. After the transaction returns, we can fetch the state of the vote account
-    let currentVoteAccountState = await program.account.votingState.fetch(
-      voteAccountPDA
-    );
-    console.log("currentVoteAccountState: ", currentVoteAccountState);
+  //   // 3. After the transaction returns, we can fetch the state of the vote account
+  //   let currentVoteAccountState = await program.account.votingState.fetch(
+  //     voteAccountPDA
+  //   );
+  //   console.log("currentVoteAccountState: ", currentVoteAccountState);
 
-    // 4. Verify the crunchy vote incremented
-    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
-    // expect(currentVoteAccountState.smooth.toNumber()).to.equal(0);
-  });
+  //   // 4. Verify the crunchy vote incremented
+  //   expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
+  //   // expect(currentVoteAccountState.smooth.toNumber()).to.equal(0);
+  // });
 
-  it("Votes correctly for smooth", async () => {
-    const [voteAccountPDA, _] = await PublicKey.findProgramAddress(
-      [
-        anchor.utils.bytes.utf8.encode("vote-account"),
-        provider.wallet.publicKey.toBuffer(),
-      ],
-      program.programId
-    );
-    console.log(voteAccountPDA.toBase58());
+  // it("Votes correctly for smooth", async () => {
+  //   const [voteAccountPDA, _] = await PublicKey.findProgramAddress(
+  //     [
+  //       anchor.utils.bytes.utf8.encode("vote-account"),
+  //       provider.wallet.publicKey.toBuffer(),
+  //     ],
+  //     program.programId
+  //   );
+  //   console.log(voteAccountPDA.toBase58());
 
-    console.log(
-      "PDA for program",
-      program.programId.toBase58(),
-      "is generated :",
-      voteAccountPDA.toBase58()
-    );
+  //   console.log(
+  //     "PDA for program",
+  //     program.programId.toBase58(),
+  //     "is generated :",
+  //     voteAccountPDA.toBase58()
+  //   );
 
-    // Following this example to call the methods:
-    // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
-    const tx = await program.methods
-      .voteSmooth()
-      .accounts({
-        voteAccount: voteAccountPDA,
-      })
-      .rpc();
-    console.log("Your transaction signature: ", tx);
+  //   // Following this example to call the methods:
+  //   // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
+  //   const tx = await program.methods
+  //     .voteSmooth()
+  //     .accounts({
+  //       voteAccount: voteAccountPDA,
+  //     })
+  //     .rpc();
+  //   console.log("Your transaction signature: ", tx);
 
-    // 3. After the transaction returns, we can fetch the state of the vote account
-    let currentVoteAccountState = await program.account.votingState.fetch(
-      voteAccountPDA
-    );
-    console.log("currentVoteAccountState: ", currentVoteAccountState);
+  //   // 3. After the transaction returns, we can fetch the state of the vote account
+  //   let currentVoteAccountState = await program.account.votingState.fetch(
+  //     voteAccountPDA
+  //   );
+  //   console.log("currentVoteAccountState: ", currentVoteAccountState);
 
-    // 4. Verify the smooth vote incremented
-    expect(currentVoteAccountState.smooth.toNumber()).to.equal(1);
-    // NOTE Because we're using the same PDA to track the votes over time
-    // then the previous voteCrunchy() test vote will increment/persist!
-    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
-  });
+  //   // 4. Verify the smooth vote incremented
+  //   expect(currentVoteAccountState.smooth.toNumber()).to.equal(1);
+  //   // NOTE Because we're using the same PDA to track the votes over time
+  //   // then the previous voteCrunchy() test vote will increment/persist!
+  //   expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
+  // });
 });
