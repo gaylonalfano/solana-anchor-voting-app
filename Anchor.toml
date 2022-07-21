@@ -1,7 +1,7 @@
 [features]
 seeds = false
 [programs.localnet]
-solana_anchor_voting_app = "7vScxaW7QhPJ4szzcZ7tafjwVya7b5VFKWvANgqeU5EJ"
+solana_anchor_voting_app = "7Rq9fpjDgKMZezV8faGVEKzVnPG1jmxXD5wmnZ41r3eT"
 
 
 [registry]
