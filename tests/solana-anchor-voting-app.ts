@@ -65,7 +65,7 @@ describe("solana-anchor-voting-app", () => {
 
   const program = anchor.workspace
     .SolanaAnchorVotingApp as Program<SolanaAnchorVotingApp>;
-
+  console.log(program);
   // NOTE Original:
   // let voteAccount, voteAccountBump;
   // before(async () => {
