@@ -86,13 +86,13 @@ pub struct Vote<'info> {
     pub user: Signer<'info>,
 }
 
-/// Here we define what what the state of our `vote_account` looks like
+/// Here we define what the state of our `vote_account` looks like
 /// We define a struct with three public properties: crunchy, smooth, and bump
 /// The `crunchy` and `smooth` properties will keep track of their respective votes as unsigned 64-bit integers
 /// `bump` will store the `vote_account_bump` we passed in when we initialized our program
 /// This `bump` combined with our static "vote_account" seed will make it easy for anyone to derive the same PDA we use use to keep track of our state
 /// All of this will be passed inside each Transaction Instruction to record votes as they occur
-// NOTE PDAs is essentially hashmaps
+// NOTE PDAs are essentially hashmaps
 // NOTE This is a PDA! In some cases a PDA is preferred over a standard account. The b"some-name"
 // syntax is essentially naming a static seed so that this PDA is distinguishable from other
 // account types that are PDAs: https://book.anchor-lang.com/anchor_in_depth/PDAs.html?highlight=pda#building-hashmaps-with-pdas

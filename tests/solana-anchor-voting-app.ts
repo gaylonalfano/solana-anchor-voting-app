@@ -81,6 +81,8 @@ describe("solana-anchor-voting-app", () => {
     // NOTE They find the PDA address INSIDE the it() test!
     const [voteAccountPDA, voteAccountBump] =
       await PublicKey.findProgramAddress(
+        // Q: Would toBuffer() be better than encode()?
+        // NOTE See solana-pdas example
         [
           anchor.utils.bytes.utf8.encode("vote-account"),
           provider.wallet.publicKey.toBuffer(),
