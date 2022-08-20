@@ -1,3 +1,4 @@
+// REF: https://examples.anchor-lang.com/docs/onchain-voting -- Using KEYPAIR!
 use anchor_lang::prelude::*;
 
 declare_id!("7Rq9fpjDgKMZezV8faGVEKzVnPG1jmxXD5wmnZ41r3eT");
@@ -20,12 +21,12 @@ mod solana_anchor_voting_app {
         // NOTE The reason I'm attempting this is bc original code init's the vote_account
         // by adding constraint bump = vote_account_bump, but this makes compiling fail
         // Q: Do I need to set defaults to 0 after using Default trait?
-        // let vote_account = &mut ctx.accounts.vote_account;
-        // vote_account.crunchy = 0;
-        // vote_account.smooth = 0;
+        // A: No! #[derive(Default)] macro sets default for type
         // Q: ERROR! For some reason ctx.bumps not available...
         // A: Needed to rebuild and redeploy and then ctx had .bumps method!
         // Q: Why does get("vote_account") work but NOT "vote-account"?
+        // A: I *think* "vote_account" corresponds with account variable name (not actual seed)
+        // REF: https://book.anchor-lang.com/anchor_in_depth/PDAs.html#how-to-build-pda-hashmaps-in-anchor
         ctx.accounts.vote_account.bump = *ctx.bumps.get("vote_account").unwrap();
         Ok(())
     }
@@ -64,8 +65,9 @@ pub struct Initialize<'info> {
     // Q: Do I need to use 'pub' on these? Anchor example uses them but
     // original code doesn't
     // A: Yes, seemed to help with compilation
-    // #[account(init, seeds = [b"vote-account"], payer = user, space = 200, bump)]
-    #[account(init, seeds = [b"vote-account", user.key().as_ref()], payer = user, space = 25, bump)]
+    // Q: Won't using user.key() as a seed limit who can write to the PDA (i.e., only that user)?
+    // #[account(init, seeds = [b"vote-account", user.key().as_ref()], payer = user, space = 25, bump)]
+    #[account(init, seeds = [b"vote-account"], payer = user, space = 25, bump)]
     pub vote_account: Account<'info, VotingState>,
     // Q: Do I need user to be mutable? It is the payer....
     // A: Yes, if I remove this trait then it breaks
@@ -80,8 +82,8 @@ pub struct Initialize<'info> {
 
 #[derive(Accounts)]
 pub struct Vote<'info> {
-    // #[account(mut, seeds = [b"vote-account"], bump = vote_account.bump)]
-    #[account(mut, seeds = [b"vote-account", user.key().as_ref()], bump = vote_account.bump)]
+    // #[account(mut, seeds = [b"vote-account", user.key().as_ref()], bump = vote_account.bump)]
+    #[account(mut, seeds = [b"vote-account"], bump = vote_account.bump)]
     pub vote_account: Account<'info, VotingState>,
     pub user: Signer<'info>,
 }

@@ -76,6 +76,12 @@ describe("solana-anchor-voting-app", () => {
   //     );
   // });
 
+  // Build some test users to test writing to PDA using various wallets
+  // NOTE These should reset/change each time I startup test-validator
+  const testUser1 = anchor.web3.Keypair.generate();
+  const testUser2 = anchor.web3.Keypair.generate();
+  const testUser3 = anchor.web3.Keypair.generate();
+
   it("Initializes with 0 votes for crunchy and smooth", async () => {
     // NOTE From Anchor PDA example: https://book.anchor-lang.com/anchor_in_depth/PDAs.html#how-to-build-pda-hashmaps-in-anchor
     // NOTE They find the PDA address INSIDE the it() test!
@@ -85,7 +91,11 @@ describe("solana-anchor-voting-app", () => {
         // NOTE See solana-pdas example
         [
           anchor.utils.bytes.utf8.encode("vote-account"),
-          provider.wallet.publicKey.toBuffer(),
+          // Q: Need wallet publicKey? Won't this restrict to only that user
+          // being able to write to PDA?
+          // A: YES! The original crunchy-vs-smooth didn't use wallet pubkeys,
+          // since that would create a unique PDA for the user (not users!).
+          // provider.wallet.publicKey.toBuffer(),
         ],
         program.programId
       );
@@ -154,7 +164,7 @@ describe("solana-anchor-voting-app", () => {
       await PublicKey.findProgramAddress(
         [
           anchor.utils.bytes.utf8.encode("vote-account"),
-          provider.wallet.publicKey.toBuffer(),
+          // provider.wallet.publicKey.toBuffer(),
         ],
         program.programId
       );
@@ -217,7 +227,7 @@ describe("solana-anchor-voting-app", () => {
     const [voteAccountPDA, _] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode("vote-account"),
-        provider.wallet.publicKey.toBuffer(),
+        // provider.wallet.publicKey.toBuffer(),
       ],
       program.programId
     );
