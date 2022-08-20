@@ -159,7 +159,7 @@ describe("solana-anchor-voting-app", () => {
     // expect(currentVoteAccountState.bump).to.equal(voteAccountBump);
   });
 
-  it("Votes correctly for crunchy", async () => {
+  it("INIT USER Votes correctly for crunchy", async () => {
     const [voteAccountPDA, voteAccountBump] =
       await PublicKey.findProgramAddress(
         [
@@ -211,6 +211,7 @@ describe("solana-anchor-voting-app", () => {
       })
       .rpc();
     console.log("voteCrunchyTx signature: ", voteCrunchyTx);
+    console.log("Provider Wallet:", provider.wallet.publicKey.toBase58());
 
     // 3. After the transaction returns, we can fetch the state of the vote account
     let currentVoteAccountState = await program.account.votingState.fetch(
@@ -223,7 +224,7 @@ describe("solana-anchor-voting-app", () => {
     // expect(currentVoteAccountState.smooth.toNumber()).to.equal(0);
   });
 
-  it("Votes correctly for smooth", async () => {
+  it("INIT USER Votes correctly for smooth", async () => {
     const [voteAccountPDA, _] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode("vote-account"),
@@ -249,6 +250,7 @@ describe("solana-anchor-voting-app", () => {
       })
       .rpc();
     console.log("Your transaction signature: ", tx);
+    console.log("Provider Wallet:", provider.wallet.publicKey.toBase58());
 
     // 3. After the transaction returns, we can fetch the state of the vote account
     let currentVoteAccountState = await program.account.votingState.fetch(
@@ -261,5 +263,107 @@ describe("solana-anchor-voting-app", () => {
     // NOTE Because we're using the same PDA to track the votes over time
     // then the previous voteCrunchy() test vote will increment/persist!
     expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
+  });
+
+  it("TESTUSER 1 votes correctly for smooth", async () => {
+    // Q: Need to reset the Provider with a different wallet? Think so...
+    // The reason is that you only need the user/wallet to SIGN to vote...
+    // A: YES! Otherwise, Provider Wallet remains the same Signer!
+    const newConnection = new anchor.web3.Connection("http://localhost:8899");
+    const newWallet = new anchor.Wallet(testUser1);
+    const newProvider = new anchor.AnchorProvider(newConnection, newWallet, {
+      commitment: "confirmed",
+    });
+    anchor.setProvider(newProvider);
+
+    const [voteAccountPDA, _] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode("vote-account"),
+        // provider.wallet.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    console.log(voteAccountPDA.toBase58());
+
+    console.log(
+      "PDA for program",
+      program.programId.toBase58(),
+      "is generated :",
+      voteAccountPDA.toBase58()
+    );
+
+    // Following this example to call the methods:
+    // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
+    const tx = await program.methods
+      .voteSmooth()
+      .accounts({
+        voteAccount: voteAccountPDA,
+      })
+      .rpc();
+    console.log("Your transaction signature: ", tx);
+    console.log("Provider Wallet:", newProvider.wallet.publicKey.toBase58());
+
+    // 3. After the transaction returns, we can fetch the state of the vote account
+    let currentVoteAccountState = await program.account.votingState.fetch(
+      voteAccountPDA
+    );
+    console.log("currentVoteAccountState: ", currentVoteAccountState);
+
+    // 4. Verify the smooth vote incremented
+    expect(currentVoteAccountState.smooth.toNumber()).to.equal(2);
+    // NOTE Because we're using the same PDA to track the votes over time
+    // then the previous voteCrunchy() test vote will increment/persist!
+    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
+  });
+
+  it("TESTUSER 2 votes correctly for crunchy", async () => {
+    // Q: Need to reset the Provider with a different wallet? Think so...
+    // The reason is that you only need the user/wallet to SIGN to vote...
+    // A: YES! Otherwise, Provider Wallet remains the same Signer!
+    const newConnection = new anchor.web3.Connection("http://localhost:8899");
+    const newWallet = new anchor.Wallet(testUser2);
+    const newProvider = new anchor.AnchorProvider(newConnection, newWallet, {
+      commitment: "confirmed",
+    });
+    anchor.setProvider(newProvider);
+
+    const [voteAccountPDA, _] = await PublicKey.findProgramAddress(
+      [
+        anchor.utils.bytes.utf8.encode("vote-account"),
+        // provider.wallet.publicKey.toBuffer(),
+      ],
+      program.programId
+    );
+    console.log(voteAccountPDA.toBase58());
+
+    console.log(
+      "PDA for program",
+      program.programId.toBase58(),
+      "is generated :",
+      voteAccountPDA.toBase58()
+    );
+
+    // Following this example to call the methods:
+    // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
+    const tx = await program.methods
+      .voteCrunchy()
+      .accounts({
+        voteAccount: voteAccountPDA,
+      })
+      .rpc();
+    console.log("Your transaction signature: ", tx);
+    console.log("Provider Wallet:", newProvider.wallet.publicKey.toBase58());
+
+    // 3. After the transaction returns, we can fetch the state of the vote account
+    let currentVoteAccountState = await program.account.votingState.fetch(
+      voteAccountPDA
+    );
+    console.log("currentVoteAccountState: ", currentVoteAccountState);
+
+    // 4. Verify the smooth vote incremented
+    expect(currentVoteAccountState.smooth.toNumber()).to.equal(2);
+    // NOTE Because we're using the same PDA to track the votes over time
+    // then the previous voteCrunchy() test vote will increment/persist!
+    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(2);
   });
 });
