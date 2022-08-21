@@ -53,36 +53,20 @@ import { BN } from "bn.js";
 // // 4. Execute the RPC
 // await program.rpc.initialize();
 
-// ===== TEST code from crunchy-vs-smooth-v2 repo
-// const assert = require("assert");
-// const anchor = require("@project-serum/anchor");
-
 describe("solana-anchor-voting-app", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  console.log("Provider Wallet:", provider.wallet.publicKey.toBase58());
 
   const program = anchor.workspace
     .SolanaAnchorVotingApp as Program<SolanaAnchorVotingApp>;
-
-  // NOTE Original:
-  // let voteAccount, voteAccountBump;
-  // before(async () => {
-  //   [voteAccount, voteAccountBump] =
-  //     await anchor.web3.PublicKey.findProgramAddress(
-  //       [Buffer.from("vote_account")],
-  //       program.programId
-  //     );
-  // });
 
   // Build some test users to test writing to PDA using various wallets
   // NOTE These should reset/change each time I startup test-validator
   const testUser1 = anchor.web3.Keypair.generate();
   const testUser2 = anchor.web3.Keypair.generate();
-  const testUser3 = anchor.web3.Keypair.generate();
 
-  it("Initializes with 0 votes for crunchy and smooth", async () => {
+  it("Initializes with 0 votes for crunchy and smooth and is active", async () => {
     // NOTE From Anchor PDA example: https://book.anchor-lang.com/anchor_in_depth/PDAs.html#how-to-build-pda-hashmaps-in-anchor
     // NOTE They find the PDA address INSIDE the it() test!
     const [voteAccountPDA, voteAccountBump] =
@@ -134,13 +118,6 @@ describe("solana-anchor-voting-app", () => {
       .rpc();
     console.log("Your transaction signature: ", tx);
 
-    // OLD/ORIGINAL: await program.rpc.initialize(new anchor.BN(voteAccountBump), { accounts: {
-    //     user: provider.wallet.publicKey,
-    //     voteAccount: voteAccount,
-    //     systemProgram: anchor.web3.SystemProgram.programId,
-    //   },
-    // });
-
     // 3. After the transaction returns, we can fetch the state of the vote account
     let currentVoteAccountState = await program.account.votingState.fetch(
       voteAccountPDA
@@ -154,9 +131,8 @@ describe("solana-anchor-voting-app", () => {
     // assert.equal(0, currentVoteAccountState.smooth.toNumber());
     // NEW:
     expect(currentVoteAccountState.crunchy.toNumber()).to.equal(0);
-    // expect(currentVoteAccountState.crunchy).to.equal(new anchor.BN(0));
     expect(currentVoteAccountState.smooth.toNumber()).to.equal(0);
-    // expect(currentVoteAccountState.bump).to.equal(voteAccountBump);
+    expect(currentVoteAccountState.isActive).to.equal(true);
   });
 
   it("INIT USER Votes correctly for crunchy", async () => {

@@ -28,6 +28,7 @@ mod solana_anchor_voting_app {
         // A: I *think* "vote_account" corresponds with account variable name (not actual seed)
         // REF: https://book.anchor-lang.com/anchor_in_depth/PDAs.html#how-to-build-pda-hashmaps-in-anchor
         ctx.accounts.vote_account.bump = *ctx.bumps.get("vote_account").unwrap();
+        ctx.accounts.vote_account.is_active = true;
         Ok(())
     }
 
@@ -67,7 +68,7 @@ pub struct Initialize<'info> {
     // A: Yes, seemed to help with compilation
     // Q: Won't using user.key() as a seed limit who can write to the PDA (i.e., only that user)?
     // #[account(init, seeds = [b"vote-account", user.key().as_ref()], payer = user, space = 25, bump)]
-    #[account(init, seeds = [b"vote-account"], payer = user, space = 25, bump)]
+    #[account(init, seeds = [b"vote-account"], payer = user, space = 8 + 1 + 8 + 8 + 1, bump)]
     pub vote_account: Account<'info, VotingState>,
     // Q: Do I need user to be mutable? It is the payer....
     // A: Yes, if I remove this trait then it breaks
@@ -101,6 +102,8 @@ pub struct Vote<'info> {
 #[account]
 #[derive(Default)]
 pub struct VotingState {
+    // 8 bytes for Discrimator
+    is_active: bool, // 1 byte
     crunchy: u64, // 8 bytes
     smooth: u64, // 8 bytes
     bump: u8, // 1 byte
