@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { notificationStore } from '$stores/notification';
 
@@ -9,23 +9,23 @@
 		description = '',
 		txid = '';
 
-    let timer: NodeJS.Timeout;
+	let timer: NodeJS.Timeout;
 
 	function onHide(id: string) {
 		notificationStore.remove(id);
 	}
 
-    function timeOut(id:string) {
-        timer =  setTimeout(() => {
-            onHide(id);
-        }, 8000);
-    }
+	function timeOut(id: string) {
+		timer = setTimeout(() => {
+			onHide(id);
+		}, 8000);
+	}
 
-    $: timeOut(id);
+	$: timeOut(id);
 
-    onDestroy(() => {
-        clearInterval(timer);
-    })
+	onDestroy(() => {
+		clearInterval(timer);
+	});
 </script>
 
 <div

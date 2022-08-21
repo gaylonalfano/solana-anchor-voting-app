@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { RequestAirdrop } from '$lib/index';
 	import { walletStore } from '@svelte-on-solana/wallet-adapter-core';
-	import { workSpace as workSpaceStore } from '@svelte-on-solana/wallet-adapter-anchor';
+	import { workSpace as workspaceStore } from '@svelte-on-solana/wallet-adapter-anchor';
 	import { balanceStore } from '$stores/balance';
 	import type { PublicKey } from '@solana/web3.js';
 
 	$: $walletStore.connected &&
-		balanceStore.getUserSOLBalance($walletStore.publicKey as PublicKey, $workSpaceStore.connection);
+		balanceStore.getUserSOLBalance($walletStore.publicKey as PublicKey, $workspaceStore.connection);
 </script>
 
 <div class="p-4 mx-auto md:hero">

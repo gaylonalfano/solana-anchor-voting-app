@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { walletStore } from '@svelte-on-solana/wallet-adapter-core';
-	import { workSpace } from '@svelte-on-solana/wallet-adapter-ui';
+	import { workSpace as workspaceStore } from '@svelte-on-solana/wallet-adapter-anchor';
 	import { LAMPORTS_PER_SOL, type TransactionSignature, type PublicKey } from '@solana/web3.js';
 	import { balanceStore } from '$stores/balance';
 	import { notificationStore } from '$stores/notification';
@@ -17,7 +17,7 @@
 		}
 
 		let signature: TransactionSignature = '';
-		const { connection } = $workSpace;
+		const { connection } = $workspaceStore;
 		const publicKey = $walletStore.publicKey as PublicKey;
 
 		try {

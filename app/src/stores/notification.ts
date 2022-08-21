@@ -11,7 +11,7 @@ export type Notification = {
 
 type NotificationStore = Notification[];
 
-const initState:NotificationStore = [];
+const initState: NotificationStore = [];
 
 function declareNotificationStore() {
 	const { subscribe, update } = writable<NotificationStore>(initState);
