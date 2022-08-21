@@ -12,7 +12,7 @@ mod solana_anchor_voting_app {
 
     /// The first parameter for every RPC handler is the Context struct. We define Initialize and Vote below at #[derive(Accounts)]
     /// When `initalize` is called, we'll store the `vote_account_bump` that was used to derive our PDA so that others can easily derive it on their clients
-    /// We no longer have to manually set both `crunchy` and `smooth` to 0 because we opted to use the `default` trait on our VotingState struct at the bottom of this file
+    /// We no longer have to manually set both `crunchy` and `smooth` to 0 because we opted to use the `default` trait on our VoteState struct at the bottom of this file
     /// This a Rust trait that is used via #[derive(Default)]. More info on that here: https://doc.rust-lang.org/std/default/trait.Default.html
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         // ctx.accounts.vote_account.bump = vote_account_bump;
@@ -33,13 +33,24 @@ mod solana_anchor_voting_app {
     }
 
     /// All our account validation logic is handled below at the #[account(...)] macros, letting us just focus our business logic
-    pub fn vote_crunchy(ctx: Context<Vote>) -> Result<()> {
-        ctx.accounts.vote_account.crunchy += 1;
-        Ok(())
-    }
+    // pub fn vote_crunchy(ctx: Context<Vote>) -> Result<()> {
+    //     ctx.accounts.vote_account.crunchy += 1;
+    //     Ok(())
+    // }
 
-    pub fn vote_smooth(ctx: Context<Vote>) -> Result<()> {
-        ctx.accounts.vote_account.smooth += 1;
+    // pub fn vote_smooth(ctx: Context<Vote>) -> Result<()> {
+    //     ctx.accounts.vote_account.smooth += 1;
+    //     Ok(())
+    // }
+    pub fn vote(ctx: Context<Vote>, vote_type: VoteType) -> Result<()> {
+        match vote_type {
+            VoteType::GMI => {
+                ctx.accounts.vote_account.gmi += 1;
+            },
+            VoteType::NGMI => {
+                ctx.accounts.vote_account.ngmi += 1;
+            },
+        };
         Ok(())
     }
 }
@@ -62,14 +73,14 @@ pub struct Initialize<'info> {
     /// Since we are only dealing with fixed-sized integers, we can leave out `space` and Anchor will calculate this for us automatically
     ///
     /// `seeds` and `bump` tell us that our `vote_account` is a PDA that can be derived from their respective values
-    /// Account<'info, VotingState> tells us that it should be deserialized to the VotingState struct defined below at #[account]
+    /// Account<'info, VoteState> tells us that it should be deserialized to the VoteState struct defined below at #[account]
     // Q: Do I need to use 'pub' on these? Anchor example uses them but
     // original code doesn't
     // A: Yes, seemed to help with compilation
     // Q: Won't using user.key() as a seed limit who can write to the PDA (i.e., only that user)?
     // #[account(init, seeds = [b"vote-account", user.key().as_ref()], payer = user, space = 25, bump)]
     #[account(init, seeds = [b"vote-account"], payer = user, space = 8 + 1 + 8 + 8 + 1, bump)]
-    pub vote_account: Account<'info, VotingState>,
+    pub vote_account: Account<'info, VoteState>,
     // Q: Do I need user to be mutable? It is the payer....
     // A: Yes, if I remove this trait then it breaks
     #[account(mut)]
@@ -85,7 +96,7 @@ pub struct Initialize<'info> {
 pub struct Vote<'info> {
     // #[account(mut, seeds = [b"vote-account", user.key().as_ref()], bump = vote_account.bump)]
     #[account(mut, seeds = [b"vote-account"], bump = vote_account.bump)]
-    pub vote_account: Account<'info, VotingState>,
+    pub vote_account: Account<'info, VoteState>,
     pub user: Signer<'info>,
 }
 
@@ -101,15 +112,19 @@ pub struct Vote<'info> {
 // account types that are PDAs: https://book.anchor-lang.com/anchor_in_depth/PDAs.html?highlight=pda#building-hashmaps-with-pdas
 #[account]
 #[derive(Default)]
-pub struct VotingState {
+pub struct VoteState {
     // 8 bytes for Discrimator
     is_active: bool, // 1 byte
-    crunchy: u64, // 8 bytes
-    smooth: u64, // 8 bytes
+    gmi: u64, // 8 bytes
+    ngmi: u64, // 8 bytes
     bump: u8, // 1 byte
 }
 
-
+#[derive(AnchorSerialize, AnchorDeserialize)]
+pub enum VoteType {
+    GMI,
+    NGMI
+}
 
 
 

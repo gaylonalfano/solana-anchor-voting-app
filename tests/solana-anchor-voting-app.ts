@@ -66,7 +66,7 @@ describe("solana-anchor-voting-app", () => {
   const testUser1 = anchor.web3.Keypair.generate();
   const testUser2 = anchor.web3.Keypair.generate();
 
-  it("Initializes with 0 votes for crunchy and smooth and is active", async () => {
+  it("Initializes with 0 votes for GMI and NGMI and is active", async () => {
     // NOTE From Anchor PDA example: https://book.anchor-lang.com/anchor_in_depth/PDAs.html#how-to-build-pda-hashmaps-in-anchor
     // NOTE They find the PDA address INSIDE the it() test!
     const [voteAccountPDA, voteAccountBump] =
@@ -119,23 +119,18 @@ describe("solana-anchor-voting-app", () => {
     console.log("Your transaction signature: ", tx);
 
     // 3. After the transaction returns, we can fetch the state of the vote account
-    let currentVoteAccountState = await program.account.votingState.fetch(
+    let currentVoteAccountState = await program.account.voteState.fetch(
       voteAccountPDA
     );
     // console.log("currentVoteAccountState: ", currentVoteAccountState);
 
     // 4. Verify the vote account has set up correctly
-    // https://book.anchor-lang.com/anchor_references/javascript_anchor_types_reference.html
-    // OLD:
-    // assert.equal(0, currentVoteAccountState.crunchy.toNumber());
-    // assert.equal(0, currentVoteAccountState.smooth.toNumber());
-    // NEW:
-    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(0);
-    expect(currentVoteAccountState.smooth.toNumber()).to.equal(0);
+    expect(currentVoteAccountState.gmi.toNumber()).to.equal(0);
+    expect(currentVoteAccountState.ngmi.toNumber()).to.equal(0);
     expect(currentVoteAccountState.isActive).to.equal(true);
   });
 
-  it("INIT USER Votes correctly for crunchy", async () => {
+  it("INIT USER Votes correctly for GMI", async () => {
     const [voteAccountPDA, voteAccountBump] =
       await PublicKey.findProgramAddress(
         [
@@ -179,28 +174,27 @@ describe("solana-anchor-voting-app", () => {
 
     // Following this example to call the methods:
     // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
-    const voteCrunchyTx = await program.methods
-      .voteCrunchy()
+    const tx = await program.methods
+      .vote({ gmi: {} })
       .accounts({
         voteAccount: voteAccountPDA,
         user: provider.wallet.publicKey,
       })
       .rpc();
-    console.log("voteCrunchyTx signature: ", voteCrunchyTx);
+    console.log("TxHash ::", tx);
     console.log("Provider Wallet:", provider.wallet.publicKey.toBase58());
 
     // 3. After the transaction returns, we can fetch the state of the vote account
-    let currentVoteAccountState = await program.account.votingState.fetch(
+    let currentVoteAccountState = await program.account.voteState.fetch(
       voteAccountPDA
     );
     console.log("currentVoteAccountState: ", currentVoteAccountState);
 
     // 4. Verify the crunchy vote incremented
-    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
-    // expect(currentVoteAccountState.smooth.toNumber()).to.equal(0);
+    expect(currentVoteAccountState.gmi.toNumber()).to.equal(1);
   });
 
-  it("INIT USER Votes correctly for smooth", async () => {
+  it("INIT USER Votes correctly for NGMI", async () => {
     const [voteAccountPDA, _] = await PublicKey.findProgramAddress(
       [
         anchor.utils.bytes.utf8.encode("vote-account"),
@@ -220,28 +214,28 @@ describe("solana-anchor-voting-app", () => {
     // Following this example to call the methods:
     // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
     const tx = await program.methods
-      .voteSmooth()
+      .vote({ ngmi: {} }) // Custom Instruction Data struct passed like this
       .accounts({
         voteAccount: voteAccountPDA,
       })
       .rpc();
-    console.log("Your transaction signature: ", tx);
+    console.log("TxHash ::", tx);
     console.log("Provider Wallet:", provider.wallet.publicKey.toBase58());
 
     // 3. After the transaction returns, we can fetch the state of the vote account
-    let currentVoteAccountState = await program.account.votingState.fetch(
+    let currentVoteAccountState = await program.account.voteState.fetch(
       voteAccountPDA
     );
     console.log("currentVoteAccountState: ", currentVoteAccountState);
 
-    // 4. Verify the smooth vote incremented
-    expect(currentVoteAccountState.smooth.toNumber()).to.equal(1);
+    // 4. Verify the NGMI vote incremented
+    expect(currentVoteAccountState.ngmi.toNumber()).to.equal(1);
     // NOTE Because we're using the same PDA to track the votes over time
     // then the previous voteCrunchy() test vote will increment/persist!
-    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
+    expect(currentVoteAccountState.gmi.toNumber()).to.equal(1);
   });
 
-  it("TESTUSER 1 votes correctly for smooth", async () => {
+  it("TESTUSER 1 votes correctly for NGMI", async () => {
     // Q: Need to reset the Provider with a different wallet? Think so...
     // The reason is that you only need the user/wallet to SIGN to vote...
     // A: YES! Otherwise, Provider Wallet remains the same Signer!
@@ -271,28 +265,28 @@ describe("solana-anchor-voting-app", () => {
     // Following this example to call the methods:
     // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
     const tx = await program.methods
-      .voteSmooth()
+      .vote({ ngmi: {} })
       .accounts({
         voteAccount: voteAccountPDA,
       })
       .rpc();
-    console.log("Your transaction signature: ", tx);
+    console.log("TxHash ::", tx);
     console.log("Provider Wallet:", newProvider.wallet.publicKey.toBase58());
 
     // 3. After the transaction returns, we can fetch the state of the vote account
-    let currentVoteAccountState = await program.account.votingState.fetch(
+    let currentVoteAccountState = await program.account.voteState.fetch(
       voteAccountPDA
     );
     console.log("currentVoteAccountState: ", currentVoteAccountState);
 
-    // 4. Verify the smooth vote incremented
-    expect(currentVoteAccountState.smooth.toNumber()).to.equal(2);
+    // 4. Verify the NGMI vote incremented
+    expect(currentVoteAccountState.ngmi.toNumber()).to.equal(2);
     // NOTE Because we're using the same PDA to track the votes over time
-    // then the previous voteCrunchy() test vote will increment/persist!
-    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(1);
+    // then the previous vote() test vote will increment/persist!
+    expect(currentVoteAccountState.gmi.toNumber()).to.equal(1);
   });
 
-  it("TESTUSER 2 votes correctly for crunchy", async () => {
+  it("TESTUSER 2 votes correctly for GMI", async () => {
     // Q: Need to reset the Provider with a different wallet? Think so...
     // The reason is that you only need the user/wallet to SIGN to vote...
     // A: YES! Otherwise, Provider Wallet remains the same Signer!
@@ -322,25 +316,25 @@ describe("solana-anchor-voting-app", () => {
     // Following this example to call the methods:
     // https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
     const tx = await program.methods
-      .voteCrunchy()
+      .vote({ gmi: {} })
       .accounts({
         voteAccount: voteAccountPDA,
       })
       .rpc();
-    console.log("Your transaction signature: ", tx);
+    console.log("TxHash ::", tx);
     console.log("Provider Wallet:", newProvider.wallet.publicKey.toBase58());
 
     // 3. After the transaction returns, we can fetch the state of the vote account
-    let currentVoteAccountState = await program.account.votingState.fetch(
+    let currentVoteAccountState = await program.account.voteState.fetch(
       voteAccountPDA
     );
     console.log("currentVoteAccountState: ", currentVoteAccountState);
 
     // 4. Verify the smooth vote incremented
-    expect(currentVoteAccountState.smooth.toNumber()).to.equal(2);
+    expect(currentVoteAccountState.ngmi.toNumber()).to.equal(2);
     // NOTE Because we're using the same PDA to track the votes over time
     // then the previous voteCrunchy() test vote will increment/persist!
-    expect(currentVoteAccountState.crunchy.toNumber()).to.equal(2);
+    expect(currentVoteAccountState.gmi.toNumber()).to.equal(2);
   });
 });
 
