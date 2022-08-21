@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { RequestAirdrop } from '$lib/index';
 	import { walletStore } from '@svelte-on-solana/wallet-adapter-core';
-	import { workSpace } from '@svelte-on-solana/wallet-adapter-ui';
+	import { workSpace as workSpaceStore } from '@svelte-on-solana/wallet-adapter-anchor';
 	import { balanceStore } from '$stores/balance';
 	import type { PublicKey } from '@solana/web3.js';
 
 	$: $walletStore.connected &&
-		balanceStore.getUserSOLBalance($walletStore.publicKey as PublicKey, $workSpace.connection);
+		balanceStore.getUserSOLBalance($walletStore.publicKey as PublicKey, $workSpaceStore.connection);
 </script>
 
 <div class="p-4 mx-auto md:hero">
@@ -25,7 +25,7 @@
 		<div class="max-w-md p-6 mx-auto my-2 mockup-code bg-primary">
 			<pre data-prefix=">">
 		  <code class="truncate">Start building on Solana  </code>
-		</pre>
+			</pre>
 		</div>
 		<div class="text-center">
 			<RequestAirdrop />

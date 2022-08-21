@@ -5,39 +5,43 @@
 </script>
 
 <script lang="ts">
-	import { clusterApiUrl } from '@solana/web3.js';
-	import { WalletProvider, ConnectionProvider } from '@svelte-on-solana/wallet-adapter-ui';
-	import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-	import type { Adapter } from '@solana/wallet-adapter-base';
-	import { getLocalStorage } from '@svelte-on-solana/wallet-adapter-core';
+	import { walletStore } from '@svelte-on-solana/wallet-adapter-core';
 	import { AppBar, ContentContainer, Footer, NotificationList } from '$lib/index';
-	import { browser } from '$app/env';
-	import {
-		PhantomWalletAdapter,
-		SolflareWalletAdapter,
-		SolletExtensionWalletAdapter,
-		SolletWalletAdapter,
-		TorusWalletAdapter
-	} from '@solana/wallet-adapter-wallets';
+	import { WalletProvider } from '@svelte-on-solana/wallet-adapter-ui';
+	import { AnchorConnectionProvider } from '@svelte-on-solana/wallet-adapter-anchor';
+	import { clusterApiUrl } from '@solana/web3.js';
+	import idl from '../../../target/idl/solana_anchor_voting_app.json';
+	import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 	import '../app.css';
 
 	const localStorageKey = 'walletAdapter';
-	const endpoint = WalletAdapterNetwork.Devnet;
-	const network = clusterApiUrl(WalletAdapterNetwork.Devnet);
+	/* const network = clusterApiUrl('localhost'); // localhost or mainnet */
+	const network = 'http://localhost:8899';
 
-	let wallets: Adapter[] = [
-		new PhantomWalletAdapter(),
-		new SolflareWalletAdapter(),
-		new SolletWalletAdapter({ network: endpoint }),
-		new SolletExtensionWalletAdapter({ network: endpoint }),
-		new TorusWalletAdapter(),
-	];
+	let wallets = [new PhantomWalletAdapter(), new SolflareWalletAdapter()];
 
-	$: autoConnect = browser && Boolean(getLocalStorage('autoconnect', false));
+	/* === ORIGINAL === */
+	/* import { clusterApiUrl } from '@solana/web3.js'; */
+	/* import { WalletProvider, ConnectionProvider } from '@svelte-on-solana/wallet-adapter-ui'; */
+	/* import { WalletAdapterNetwork } from '@solana/wallet-adapter-base'; */
+	/* import type { Adapter } from '@solana/wallet-adapter-base'; */
+	/* import { getLocalStorage } from '@svelte-on-solana/wallet-adapter-core'; */
+	/* import { AppBar, ContentContainer, Footer, NotificationList } from '$lib/index'; */
+	/* import { browser } from '$app/env'; */
+	/* import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets'; */
+	/* import '../app.css'; */
+
+	/* const localStorageKey = 'walletAdapter'; */
+	/* const endpoint = WalletAdapterNetwork.Devnet; */
+	/* const network = 'http://localhost:8899'; // clusterApiUrl(WalletAdapterNetwork.Devnet); */
+
+	/* let wallets: Adapter[] = [new PhantomWalletAdapter(), new SolflareWalletAdapter()]; */
+
+	/* $: autoConnect = browser && Boolean(getLocalStorage('autoconnect', false)); */
 </script>
 
-<WalletProvider {localStorageKey} {wallets} {autoConnect} />
-<ConnectionProvider {network} />
+<WalletProvider {localStorageKey} {wallets} autoConnect />
+<AnchorConnectionProvider {network} {idl} />
 <AppBar />
 <ContentContainer>
 	<slot />

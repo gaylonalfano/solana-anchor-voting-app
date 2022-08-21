@@ -11,7 +11,7 @@ const config = {
 		'process.env.VERSION': JSON.stringify(process.env.npm_package_version)
 	},
 	optimizeDeps: {
-		include: ['@solana/web3.js', 'buffer']
+		include: ['@project-serum/anchor', '@solana/web3.js', 'buffer']
 	},
 	resolve: {
 		alias: {
