@@ -10,77 +10,137 @@
 	// const provider = $workspaceStore.provider as anchor.AnchorProvider;
 	let voteAccount;
 
-	// === Helpers
-	async function derivePda(seed: string) {
-		// NOTE This is key! We can derive PDA WITHOUT hitting our program!
-		// Then we can use this PDA address in our functions as a check to see
-		// whether there is a ledger account at this PDA address.
-		// Then, MOST IMPORTANTLY, we can fetch the account's data from the CLIENT
-		// and use its data.
-		// NOTE pubkey is actually provider.wallet.publicKey
-		let [pda, _] = await anchor.web3.PublicKey.findProgramAddress(
-			[Buffer.from(seed)],
+	// === Use Tests code instead of Helpers
+	async function handleCreateDataAccount() {
+		const [voteAccountPDA, voteAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
+			// Q: Would toBuffer() be better than encode()?
+			// NOTE See solana-pdas example
+			[
+				anchor.utils.bytes.utf8.encode('vote-account')
+				// Q: Need wallet publicKey? Won't this restrict to only that user
+				// being able to write to PDA?
+				// A: YES! The original crunchy-vs-smooth didn't use wallet pubkeys,
+				// since that would create a unique PDA for the user (not users!).
+				// provider.wallet.publicKey.toBuffer(),
+			],
+			// program.programId
+			// $workspaceStore.program!.programId
 			$workspaceStore.program?.programId as anchor.web3.PublicKey
 		);
 
-		return pda;
-	}
+		console.log(
+			'PDA for program',
+			$workspaceStore.program?.programId.toBase58(),
+			'is generated :',
+			voteAccountPDA.toBase58()
+		);
 
-	async function handleGetAccountData(seed: string) {
-		// NOTE For testing purposes only. Taking input text and converting to correct types.
-		// NOTE Must convert string to type Publickey
-		let pda = await derivePda(seed);
-		let data = await $workspaceStore.program?.account.voteAccount.fetch(pda);
-		// voteAccount = data;
-		return data;
-	}
-
-	async function createDataAccount(pda: anchor.web3.PublicKey) {
-		// Calls the program's on-chain initialize instruction function
-		// to create a vote account LOCATED at our generated PDA address!
-		await $workspaceStore.program?.methods
+		// Following this example to call the methods:
+		// https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
+		const tx = await $workspaceStore.program?.methods
 			.initialize()
 			.accounts({
-				voteAccount: pda,
-				wallet: $walletStore.publicKey as anchor.web3.PublicKey // OR: $walletStore.publicKey
-				// NOTE Anchor automatically adds System Program (and other programs if required)
+				// Q: I believe the order of accounts need to be consistent
+				// Doesn't seem to make any difference so far...
+				// A: In lib.rs > Initialize struct, if I put user before vote_account
+				// it seems to work, even if order isn't consistent here in test.
+				// NOTE It may not be the order, but something up with resetting
+				// the test-validator before running the tests...
+				voteAccount: voteAccountPDA,
+				user: ($workspaceStore.provider as anchor.AnchorProvider).wallet.publicKey,
+				// Q: Which programId to pass? Is it my program's or the systemProgram's?
+				// NOTE I BELIEVE it should be the SystemProgram's based on this SO thread AND
+				// the fact that when I use my program's ID, the error shows it should be 111111...
+				// A: I don't think I need to provide the SystemProgramID,
+				// since it's a PDA, AND since it doesn't seem needed at all (see below)
+				// NOTE https://stackoverflow.com/questions/70675404/cross-program-invocation-with-unauthorized-signer-or-writable-account
+				// Q: Do I even need to pass systemProgram? The Anchor PDA tutorial doesn't...
+				// A: I didn't need it when just running 'anchor test' (w/o test-validator)
+				// systemProgram: program.programId, // ERROR CPI
+				systemProgram: anchor.web3.SystemProgram.programId // ERROR CPI
 			})
-			// NOTE FRONTEND: Don't need to pass signers() I guess....
-			// .signers([wallet]) // Q: Need this? A: NO!
 			.rpc();
+		console.log('Your transaction signature: ', tx);
+
+		// 3. After the transaction returns, we can fetch the state of the vote account
+		let currentVoteAccountState = await $workspaceStore.program?.account.voteState.fetch(
+			voteAccountPDA
+		);
+		voteAccount = currentVoteAccountState;
+		console.log('currentVoteAccountState: ', currentVoteAccountState);
 	}
 
-	async function handleCreateDataAccount() {
-		let pda = await derivePda('vote-account');
+	// // === Helpers
+	// async function derivePda(seed: string) {
+	// 	// NOTE This is key! We can derive PDA WITHOUT hitting our program!
+	// 	// Then we can use this PDA address in our functions as a check to see
+	// 	// whether there is a ledger account at this PDA address.
+	// 	// Then, MOST IMPORTANTLY, we can fetch the account's data from the CLIENT
+	// 	// and use its data.
+	// 	// NOTE pubkey is actually provider.wallet.publicKey
+	// 	let [pda, _] = await anchor.web3.PublicKey.findProgramAddress(
+	// 		[Buffer.from(seed)],
+	// 		$workspaceStore.program?.programId as anchor.web3.PublicKey
+	// 	);
 
-		// If testing on localnet:
-		if ($workspaceStore.network == 'http://localhost:8899') {
-			// Airdrop some SOL to the wallet
-			const airdropRequest = await $workspaceStore.connection.requestAirdrop(
-				$walletStore.publicKey as anchor.web3.PublicKey,
-				anchor.web3.LAMPORTS_PER_SOL * 2
-			);
-			await $workspaceStore.connection.confirmTransaction(airdropRequest);
-		}
+	// 	return pda;
+	// }
 
-		try {
-			// Q: How to pass a Keypair from walletStore? I have the signers([wallet]) for the ix
-			// REF: https://solana.stackexchange.com/questions/1984/anchor-signing-and-paying-for-transactions-to-interact-with-program
-			// REF: https://stackoverflow.com/questions/72549145/how-to-sign-and-call-anchor-solana-smart-contract-from-web-app
-			// REF: https://www.youtube.com/watch?v=vt8GUw_PDqM
-			// UPDATE: Looks like I can pass the $walletStore OR $workspaceStore.provider.wallet
-			// UPDATE: Looks like you DON'T pass signers([wallet]) call from frontend,
-			// since it fails if I pass it inside the program.methods.createLedger() call
-			await createDataAccount(pda); // WORKS
-			// await createDataAccount(color, pda, $workspaceStore.provider.wallet); // WORKS
+	// async function handleGetAccountData() {
+	// 	// NOTE For testing purposes only. Taking input text and converting to correct types.
+	// 	// NOTE Must convert string to type Publickey
+	// 	let pda = await derivePda('vote-account');
+	// 	let data = await $workspaceStore.program?.account?.voteAccount?.fetch(pda);
+	// 	voteAccount = data;
+	// 	return data;
+	// }
 
-			const data = await $workspaceStore.program?.account.voteAccount.fetch(pda);
-			voteAccount = data;
-			console.log('voteAccount: ', voteAccount);
-		} catch (e) {
-			console.error('handleCreateDataAccount::Error: ', e);
-		}
-	}
+	// async function createDataAccount(pda: anchor.web3.PublicKey) {
+	// 	// Calls the program's on-chain initialize instruction function
+	// 	// to create a vote account LOCATED at our generated PDA address!
+	// 	await $workspaceStore.program?.methods
+	// 		.initialize()
+	// 		.accounts({
+	// 			voteAccount: pda,
+	// 			wallet: $walletStore.publicKey as anchor.web3.PublicKey // OR: $walletStore.publicKey
+	// 			// NOTE Anchor automatically adds System Program (and other programs if required)
+	// 		})
+	// 		// NOTE FRONTEND: Don't need to pass signers() I guess....
+	// 		// .signers([wallet]) // Q: Need this? A: NO!
+	// 		.rpc();
+	// }
+
+	// async function handleCreateDataAccount() {
+	// 	let pda = await derivePda('vote-account');
+
+	// 	// If testing on localnet:
+	// 	// if ($workspaceStore.network == 'http://localhost:8899') {
+	// 	// 	// Airdrop some SOL to the wallet
+	// 	// 	const airdropRequest = await $workspaceStore.connection.requestAirdrop(
+	// 	// 		$walletStore.publicKey as anchor.web3.PublicKey,
+	// 	// 		anchor.web3.LAMPORTS_PER_SOL * 2
+	// 	// 	);
+	// 	// 	await $workspaceStore.connection.confirmTransaction(airdropRequest);
+	// 	// }
+
+	// 	try {
+	// 		// Q: How to pass a Keypair from walletStore? I have the signers([wallet]) for the ix
+	// 		// REF: https://solana.stackexchange.com/questions/1984/anchor-signing-and-paying-for-transactions-to-interact-with-program
+	// 		// REF: https://stackoverflow.com/questions/72549145/how-to-sign-and-call-anchor-solana-smart-contract-from-web-app
+	// 		// REF: https://www.youtube.com/watch?v=vt8GUw_PDqM
+	// 		// UPDATE: Looks like I can pass the $walletStore OR $workspaceStore.provider.wallet
+	// 		// UPDATE: Looks like you DON'T pass signers([wallet]) call from frontend,
+	// 		// since it fails if I pass it inside the program.methods.createLedger() call
+	// 		await createDataAccount(pda); // WORKS
+	// 		// await createDataAccount(color, pda, $workspaceStore.provider.wallet); // WORKS
+
+	// 		const data = await $workspaceStore.program?.account?.voteAccount?.fetch(pda);
+	// 		voteAccount = data;
+	// 		console.log('voteAccount: ', voteAccount);
+	// 	} catch (e) {
+	// 		console.error('handleCreateDataAccount::Error: ', e);
+	// 	}
+	// }
 </script>
 
 <div class="md:hero mx-auto p-4">
@@ -94,6 +154,9 @@
 			<div class="card-body items-center text-center">
 				<button class="btn btn-lg btn-accent" on:click={handleCreateDataAccount}
 					>Initialize Vote</button
+				>
+				<button class="btn btn-lg btn-secondary" on:click={() => console.log('get')}
+					>Get Data</button
 				>
 				<p>Are you going to make it or not?</p>
 				<div class="card-actions">
