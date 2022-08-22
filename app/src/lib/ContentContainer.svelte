@@ -15,6 +15,9 @@
 			<li>
 				<a href="/basics">Basics</a>
 			</li>
+			<li>
+				<a href="/vote">Vote</a>
+			</li>
 		</ul>
 	</div>
 </div>

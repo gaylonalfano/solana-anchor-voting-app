@@ -93,6 +93,7 @@
 		<div class="flex items-stretch">
 			<a href="/" class="btn btn-ghost btn-sm rounded-btn">Home</a>
 			<a href="/basics" class="btn btn-ghost btn-sm rounded-btn">Basics</a>
+			<a href="/vote" class="btn btn-ghost btn-sm rounded-btn">Vote</a>
 		</div>
 	</div>
 
