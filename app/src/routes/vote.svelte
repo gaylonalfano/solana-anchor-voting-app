@@ -4,14 +4,29 @@
 	import * as anchor from '@project-serum/anchor';
 	import { walletStore } from '@svelte-on-solana/wallet-adapter-core';
 	import { workSpace as workspaceStore } from '@svelte-on-solana/wallet-adapter-anchor';
+	import { notificationStore } from '../stores/notification';
+	import { Button } from '$lib/index';
 
 	// Let's fetch the vote account data
 	// const program = $workspaceStore.program as anchor.Program;
 	// const provider = $workspaceStore.provider as anchor.AnchorProvider;
 	let voteAccount;
 
+	$: {
+		console.log('voteAccount: ', voteAccount);
+	}
+
 	// === Use Tests code instead of Helpers
 	async function handleCreateDataAccount() {
+		if (voteAccount) {
+			notificationStore.add({
+				type: 'error',
+				message: 'Data account already exists!'
+			});
+			console.log('error', 'Data account already exists!');
+			return;
+		}
+
 		const [voteAccountPDA, voteAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
 			// Q: Would toBuffer() be better than encode()?
 			// NOTE See solana-pdas example
@@ -60,14 +75,129 @@
 				systemProgram: anchor.web3.SystemProgram.programId // ERROR CPI
 			})
 			.rpc();
-		console.log('Your transaction signature: ', tx);
+		console.log('TxHash ::', tx);
+
+		// Add to notificationStore
+		notificationStore.add({
+			type: 'success',
+			message: 'Transaction successful!',
+			txid: tx
+		});
 
 		// 3. After the transaction returns, we can fetch the state of the vote account
 		let currentVoteAccountState = await $workspaceStore.program?.account.voteState.fetch(
 			voteAccountPDA
 		);
 		voteAccount = currentVoteAccountState;
-		console.log('currentVoteAccountState: ', currentVoteAccountState);
+	}
+
+	async function handleGetAccountData() {
+		const [voteAccountPDA, voteAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
+			// Q: Would toBuffer() be better than encode()?
+			// NOTE See solana-pdas example
+			[
+				anchor.utils.bytes.utf8.encode('vote-account')
+				// Q: Need wallet publicKey? Won't this restrict to only that user
+				// being able to write to PDA?
+				// A: YES! The original crunchy-vs-smooth didn't use wallet pubkeys,
+				// since that would create a unique PDA for the user (not users!).
+				// provider.wallet.publicKey.toBuffer(),
+			],
+			// program.programId
+			// $workspaceStore.program!.programId
+			$workspaceStore.program?.programId as anchor.web3.PublicKey
+		);
+
+		console.log(
+			'PDA for program',
+			$workspaceStore.program?.programId.toBase58(),
+			'is generated :',
+			voteAccountPDA.toBase58()
+		);
+
+		// 3. After the transaction returns, we can fetch the state of the vote account
+		let currentVoteAccountState = await $workspaceStore.program?.account.voteState.fetch(
+			voteAccountPDA
+		);
+		voteAccount = currentVoteAccountState;
+	}
+
+	// TODO Reuse this to submit a Vote. Need to see how this Enum looks in JS,
+	// as I want to display the total voteAccount data in the UI
+	async function handleVoteGmi() {
+		const [voteAccountPDA, voteAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
+			[anchor.utils.bytes.utf8.encode('vote-account')],
+			$workspaceStore.program?.programId as anchor.web3.PublicKey
+		);
+
+		console.log(
+			'PDA for program',
+			$workspaceStore.program?.programId.toBase58(),
+			'is generated :',
+			voteAccountPDA.toBase58()
+		);
+
+		// Following this example to call the methods:
+		// https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
+		const tx = await $workspaceStore.program?.methods
+			.vote({ gmi: {} })
+			.accounts({
+				voteAccount: voteAccountPDA,
+				user: ($workspaceStore.provider as anchor.AnchorProvider).wallet.publicKey
+			})
+			.rpc();
+		console.log('TxHash ::', tx);
+
+		// Add to notificationStore
+		notificationStore.add({
+			type: 'success',
+			message: 'Transaction successful!',
+			txid: tx
+		});
+
+		// 3. After the transaction returns, we can fetch the state of the vote account
+		let currentVoteAccountState = await $workspaceStore.program?.account.voteState.fetch(
+			voteAccountPDA
+		);
+		voteAccount = currentVoteAccountState;
+	}
+
+	async function handleVoteNgmi() {
+		const [voteAccountPDA, voteAccountBump] = await anchor.web3.PublicKey.findProgramAddress(
+			[anchor.utils.bytes.utf8.encode('vote-account')],
+			$workspaceStore.program?.programId as anchor.web3.PublicKey
+		);
+
+		console.log(
+			'PDA for program',
+			$workspaceStore.program?.programId.toBase58(),
+			'is generated :',
+			voteAccountPDA.toBase58()
+		);
+
+		// Following this example to call the methods:
+		// https://book.anchor-lang.com/anchor_in_depth/milestone_project_tic-tac-toe.html?highlight=test#testing-the-setup-instruction
+		const tx = await $workspaceStore.program?.methods
+			.vote({ ngmi: {} })
+			.accounts({
+				voteAccount: voteAccountPDA,
+				user: ($workspaceStore.provider as anchor.AnchorProvider).wallet.publicKey
+			})
+			.rpc();
+		console.log('TxHash ::', tx);
+
+		// Add to notificationStore
+		notificationStore.add({
+			type: 'success',
+			message: 'Transaction successful!',
+			txid: tx
+		});
+
+		// 3. After the transaction returns, we can fetch the state of the vote account
+		let currentVoteAccountState = await $workspaceStore.program?.account.voteState.fetch(
+			voteAccountPDA
+		);
+		voteAccount = currentVoteAccountState;
 	}
 
 	// // === Helpers
@@ -150,19 +280,30 @@
 		>
 			Vote
 		</h1>
-		<div class="card w-96 bg-base-100 shadow-xl">
+		<div class="text-center">
 			<div class="card-body items-center text-center">
-				<button class="btn btn-lg btn-accent" on:click={handleCreateDataAccount}
-					>Initialize Vote</button
-				>
-				<button class="btn btn-lg btn-secondary" on:click={() => console.log('get')}
-					>Get Data</button
-				>
-				<p>Are you going to make it or not?</p>
+				<Button disabled={!$walletStore.publicKey} on:click={handleCreateDataAccount}>Init</Button>
+				<Button disabled={!$walletStore.publicKey} on:click={handleGetAccountData}>Get</Button>
 				<div class="card-actions">
-					<button class="btn btn-active btn-primary">GMI: </button>
-					<button class="btn btn-active btn-ghost">NGMI: </button>
+					<Button disabled={!$walletStore.publicKey} on:click={handleVoteGmi}>GMI</Button>
+					<Button disabled={!$walletStore.publicKey} on:click={handleVoteNgmi}>NGMI</Button>
 				</div>
+				{#if voteAccount}
+					<div class="card-body justify-center">
+						<div class="stats shadow">
+							<div class="stat">
+								<div class="stat-title">GMI</div>
+								<div class="stat-value">{voteAccount.gmi.words[0]}</div>
+							</div>
+						</div>
+						<div class="stats shadow">
+							<div class="stat">
+								<div class="stat-title">NGMI</div>
+								<div class="stat-value">{voteAccount.ngmi.words[0]}</div>
+							</div>
+						</div>
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>
