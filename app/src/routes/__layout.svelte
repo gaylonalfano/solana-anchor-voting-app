@@ -2,6 +2,7 @@
 	import { Buffer } from 'buffer';
 
 	globalThis.Buffer = Buffer;
+	// Q: Where should I try to pre-fetch account data?
 </script>
 
 <script lang="ts">

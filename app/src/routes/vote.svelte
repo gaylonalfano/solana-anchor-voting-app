@@ -4,6 +4,7 @@
 	import * as anchor from '@project-serum/anchor';
 	import { walletStore } from '@svelte-on-solana/wallet-adapter-core';
 	import { workSpace as workspaceStore } from '@svelte-on-solana/wallet-adapter-anchor';
+	import { onMount } from 'svelte';
 	import { notificationStore } from '../stores/notification';
 	import { Button } from '$lib/index';
 
@@ -11,6 +12,12 @@
 	// const program = $workspaceStore.program as anchor.Program;
 	// const provider = $workspaceStore.provider as anchor.AnchorProvider;
 	let voteAccount;
+
+	// TODO: Retreive account data from the start
+	// Q: Use lifecycle hook or perhaps SSR? Here or in __layout?
+	if ($workspaceStore) {
+		onMount(handleGetAccountData);
+	}
 
 	$: {
 		console.log('voteAccount: ', voteAccount);
